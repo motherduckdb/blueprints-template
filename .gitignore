@@ -1,0 +1,22 @@
+# local env & deps
+.venv/
+node_modules/
+.dive-preview/node_modules/
+.env
+.dive-preview/.env
+
+# generated
+.dive-preview/src/dive.tsx
+.dive-preview/dist/
+build/
+dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# local-only
+notes/
+.release-notes.md
+.DS_Store
+*.log
