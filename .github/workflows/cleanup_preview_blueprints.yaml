@@ -59,7 +59,7 @@ jobs:
         id: cleanup-branch-manifest
         if: steps.cleanup-token.outputs.available == 'true'
         continue-on-error: ${{ github.event_name == 'pull_request' }}
-        uses: motherduckdb/motherduck-blueprints@v0
+        uses: motherduckdb/motherduck-blueprints@v0.3.0
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         with:
@@ -74,7 +74,7 @@ jobs:
 
       - name: Cleanup preview blueprints from the base manifest
         if: github.event_name == 'pull_request' && steps.cleanup-token.outputs.available == 'true'
-        uses: motherduckdb/motherduck-blueprints@v0
+        uses: motherduckdb/motherduck-blueprints@v0.3.0
         env:
           MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
         with:
