@@ -1,13 +1,20 @@
 .DEFAULT_GOAL := help
 
 ARG := $(word 2,$(MAKECMDGOALS))
-DB_NAME := $(subst -,_,$(ARG))
-CLI_VERSION := 0.3.0
+CLI_VERSION := 0.4.0
 CLI := .venv/bin/md-blueprints
+CLI_SOURCE := git+https://github.com/motherduckdb/motherduck-blueprints.git@v$(CLI_VERSION)
 
-$(CLI):
-	python3 -m venv .venv
-	.venv/bin/python -m pip install "md-blueprints==$(CLI_VERSION)"
+.PHONY: cli
+cli:
+	@installed_version="$$( [ -x "$(CLI)" ] && "$(CLI)" --version 2>/dev/null || true )"; \
+	  if [ "$$installed_version" != "$(CLI_VERSION)" ]; then \
+	    python3 -m venv .venv; \
+	    .venv/bin/python -m pip install "md-blueprints @ $(CLI_SOURCE)"; \
+	  fi
+
+$(CLI): cli
+	@:
 
 .PHONY: setup
 setup: $(CLI) ## Install CLI, Dive preview dependencies, and create .env from example
@@ -17,38 +24,49 @@ setup: $(CLI) ## Install CLI, Dive preview dependencies, and create .env from ex
 	@echo "Setup complete. Edit .dive-preview/.env with your MotherDuck token."
 
 .PHONY: install-deploy
-install-deploy: ## Install CLI with live MotherDuck deploy dependencies
-	python3 -m venv .venv
-	.venv/bin/python -m pip install "md-blueprints[deploy]==$(CLI_VERSION)"
+install-deploy: $(CLI) ## Install CLI with live MotherDuck deploy dependencies
+	.venv/bin/python -m pip install "md-blueprints[deploy] @ $(CLI_SOURCE)"
 
 .PHONY: preview
 preview: ## Preview a blueprint Dive locally (e.g. make preview wikipedia-pageviews)
 	@test -n "$(ARG)" || { echo "Usage: make preview <blueprint-name>"; exit 1; }
-	@test -f "blueprints/$(ARG)/src/dive.tsx" || { echo "Dive source not found: blueprints/$(ARG)/src/dive.tsx"; exit 1; }
-	@echo 'export { default } from "../../blueprints/$(ARG)/src/dive";' > .dive-preview/src/dive.tsx
+	@SOURCE="$$( $(CLI) dive-source --blueprints "$(ARG)" $(if $(DIVE),--dive "$(DIVE)") )"; \
+	  echo "export { default, REQUIRED_DATABASES } from \"../../$${SOURCE%.tsx}\";" > .dive-preview/src/dive.tsx
 	cd .dive-preview && npm run dev
 
 .PHONY: preview-smoke
 preview-smoke: ## Build a blueprint Dive preview without starting a dev server
 	@test -n "$(ARG)" || { echo "Usage: make preview-smoke <blueprint-name>"; exit 1; }
-	@test -f "blueprints/$(ARG)/src/dive.tsx" || { echo "Dive source not found: blueprints/$(ARG)/src/dive.tsx"; exit 1; }
-	@echo 'export { default } from "../../blueprints/$(ARG)/src/dive";' > .dive-preview/src/dive.tsx
+	@SOURCE="$$( $(CLI) dive-source --blueprints "$(ARG)" $(if $(DIVE),--dive "$(DIVE)") )"; \
+	  echo "export { default, REQUIRED_DATABASES } from \"../../$${SOURCE%.tsx}\";" > .dive-preview/src/dive.tsx
 	cd .dive-preview && { test -x node_modules/.bin/vite || npm install; }
 	cd .dive-preview && npm run build
 
 .PHONY: new-blueprint
-new-blueprint: ## Scaffold a new blueprint package (e.g. make new-blueprint revenue-overview)
+new-blueprint: $(CLI) ## Compatibility alias for a complete project blueprint
 	@test -n "$(ARG)" || { echo "Usage: make new-blueprint <blueprint-name>"; exit 1; }
-	@printf '%s\n' "$(ARG)" | grep -Eq '^[a-z0-9][a-z0-9-]*$$' || { echo "Blueprint name must be a lowercase slug: a-z, 0-9, and hyphen"; exit 1; }
-	@test ! -d "blueprints/$(ARG)" || { echo "Blueprint already exists: blueprints/$(ARG)"; exit 1; }
-	mkdir -p blueprints/$(ARG)/src
-	cp templates/blueprint/blueprint.yml blueprints/$(ARG)/blueprint.yml
-	cp templates/blueprint/README.md blueprints/$(ARG)/README.md
-	cp templates/blueprint/flight.py blueprints/$(ARG)/src/flight.py
-	cp templates/blueprint/requirements.txt blueprints/$(ARG)/src/requirements.txt
-	cp templates/blueprint/dive.tsx blueprints/$(ARG)/src/dive.tsx
-	@perl -pi -e 's/__BLUEPRINT_NAME__/$(ARG)/g; s/__DATABASE_NAME__/$(DB_NAME)/g' blueprints/$(ARG)/blueprint.yml blueprints/$(ARG)/README.md blueprints/$(ARG)/src/flight.py blueprints/$(ARG)/src/dive.tsx
-	@echo "Created blueprints/$(ARG). Run make validate before opening a PR."
+	$(CLI) new project "$(ARG)"
+
+.PHONY: new-flight new-dive new-guide new-role new-project
+new-flight: $(CLI) ## Scaffold a Flight producer
+	@test -n "$(ARG)" || { echo "Usage: make new-flight <name>"; exit 1; }
+	$(CLI) new flight "$(ARG)"
+
+new-dive: $(CLI) ## Scaffold a Dive using INPUT=<blueprint.output> or URL=<share-url>
+	@test -n "$(ARG)" || { echo "Usage: make new-dive <name> INPUT=<blueprint.output> or URL=<share-url>"; exit 1; }
+	$(CLI) new dive "$(ARG)" $(if $(INPUT),--input "$(INPUT)") $(if $(URL),--url "$(URL)") $(if $(ALIAS),--alias "$(ALIAS)")
+
+new-guide: $(CLI) ## Scaffold a Guide
+	@test -n "$(ARG)" || { echo "Usage: make new-guide <name>"; exit 1; }
+	$(CLI) new guide "$(ARG)"
+
+new-role: $(CLI) ## Scaffold a production RBAC role
+	@test -n "$(ARG)" || { echo "Usage: make new-role <name>"; exit 1; }
+	$(CLI) new role "$(ARG)"
+
+new-project: $(CLI) ## Scaffold a complete Flight + share + Dive project
+	@test -n "$(ARG)" || { echo "Usage: make new-project <name>"; exit 1; }
+	$(CLI) new project "$(ARG)"
 
 .PHONY: validate
 validate: $(CLI) ## Validate all blueprint manifests without contacting MotherDuck

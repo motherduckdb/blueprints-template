@@ -3,6 +3,10 @@ name: __BLUEPRINT_NAME__
 title: __BLUEPRINT_NAME__
 description: Starter project that publishes a small daily metrics dataset and reads it from a Dive.
 
+outputs:
+  data:
+    share: data
+
 variables:
   database:
     description: MotherDuck database that stores this project's data.
@@ -53,9 +57,11 @@ resources:
     dashboard:
       title: __BLUEPRINT_NAME__
       source: src/dive.tsx
+      status: ready
       requiredResources:
         - share: data
           alias: __DATABASE_NAME__
       targets:
         preview:
           title: __BLUEPRINT_NAME__:${target.branch} (Preview)
+          status: draft
