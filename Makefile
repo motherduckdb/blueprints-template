@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 ARG := $(word 2,$(MAKECMDGOALS))
-CLI_VERSION := 0.5.0
+CLI_VERSION := 0.5.1
 CLI := .venv/bin/md-blueprints
 CLI_SOURCE := git+https://github.com/motherduckdb/motherduck-blueprints.git@v$(CLI_VERSION)
 PYTHON ?= python3

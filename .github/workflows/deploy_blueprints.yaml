@@ -40,7 +40,6 @@ on:
       - "src/**"
       - "tools/**"
       - "scripts/**"
-      - "templates/**"
       - "action.yml"
       - "pyproject.toml"
       - ".github/workflows/deploy_blueprints.yaml"
@@ -59,7 +58,6 @@ on:
       - "src/**"
       - "tools/**"
       - "scripts/**"
-      - "templates/**"
       - "action.yml"
       - "pyproject.toml"
       - ".github/workflows/deploy_blueprints.yaml"
@@ -69,7 +67,7 @@ on:
 
 jobs:
   deploy:
-    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_deploy_blueprints.yaml@v0.5.0
+    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_deploy_blueprints.yaml@v0.5.1
     with:
       target: ${{ inputs.target || 'prod' }}
       branch: ${{ inputs.branch || '' }}
