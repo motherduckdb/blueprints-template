@@ -24,7 +24,7 @@ Run `make upgrade` to update `CLI_VERSION` in `Makefile` and every Blueprints wo
 Customer workflows should pin an immutable release tag:
 
 ```yaml
-- uses: motherduckdb/motherduck-blueprints@v0.5.1
+- uses: motherduckdb/motherduck-blueprints@v0.6.0
   with:
     command: validate
 ```
@@ -131,7 +131,7 @@ One-time template setup: create `motherduckdb/blueprints-template`, mark it as a
 Before creating a release tag:
 
 ```bash
-make release-check TAG=v0.5.1
+make release-check TAG=v0.6.0
 make release-external-check
 make validate
 make mock-test
@@ -169,7 +169,7 @@ The release workflow generates `motherduckdb/blueprints-template` from the built
 | Plan/deploy/cleanup behavior | `src/md_blueprints/deploy.py` |
 | Migration behavior | `src/md_blueprints/migrations.py` |
 | Doctor/update checks | `src/md_blueprints/maintenance.py` |
-| Distribution asset assembly | `src/md_blueprints/asset-map.json`, `src/build_support.py`, `MANIFEST.in` |
+| Distribution asset assembly | `src/md_blueprints/asset-map.json`, `src/build_support.py` |
 | Local compatibility wrapper | `tools/md_blueprints` |
 | GitHub Action wrapper | `action.yml` |
 | Internal CI | `.github/workflows/ci.yaml` |
