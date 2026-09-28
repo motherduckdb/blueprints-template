@@ -37,11 +37,6 @@ on:
       - "roles/**"
       - "projects/**"
       - "schemas/**"
-      - "src/**"
-      - "tools/**"
-      - "scripts/**"
-      - "action.yml"
-      - "pyproject.toml"
       - ".github/workflows/deploy_blueprints.yaml"
   pull_request:
     branches:
@@ -55,11 +50,6 @@ on:
       - "roles/**"
       - "projects/**"
       - "schemas/**"
-      - "src/**"
-      - "tools/**"
-      - "scripts/**"
-      - "action.yml"
-      - "pyproject.toml"
       - ".github/workflows/deploy_blueprints.yaml"
   release:
     types:
@@ -67,8 +57,11 @@ on:
 
 jobs:
   deploy:
-    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_deploy_blueprints.yaml@v0.6.0
+    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_deploy_blueprints.yaml@v0.7.0
     with:
       target: ${{ inputs.target || 'prod' }}
       branch: ${{ inputs.branch || '' }}
       blueprints: ${{ inputs.blueprints || '' }}
+      # Optional runner settings. Defaults are shown:
+      # runs-on: ubuntu-latest # Or a JSON array, such as '["self-hosted", "linux"]'.
+      # python-version: "3.11"
