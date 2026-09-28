@@ -57,7 +57,7 @@ on:
 
 jobs:
   deploy:
-    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_deploy_blueprints.yaml@v0.7.0
+    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_deploy_blueprints.yaml@v0.7.1
     with:
       target: ${{ inputs.target || 'prod' }}
       branch: ${{ inputs.branch || '' }}
