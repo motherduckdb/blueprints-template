@@ -17,7 +17,7 @@ on:
 
 jobs:
   context:
-    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_prepare_guide_context.yaml@v0.7.4
+    uses: motherduckdb/motherduck-blueprints/.github/workflows/reusable_prepare_guide_context.yaml@v0.7.5
     with:
       root: ${{ inputs.root }}
       dbt: ${{ inputs.dbt }}

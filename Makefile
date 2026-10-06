@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-CLI_VERSION := 0.7.4
+CLI_VERSION := 0.7.5
 CLI := .venv/bin/md-blueprints
 CLI_SOURCE := git+https://github.com/motherduckdb/motherduck-blueprints.git@v$(CLI_VERSION)
 PYTHON ?= python3
