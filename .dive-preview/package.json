@@ -10,7 +10,7 @@
     "react": "~19.2.8",
     "react-dom": "~19.2.8",
     "@motherduck/wasm-client": "^0.8.0",
-    "recharts": "~3.7.0",
+    "recharts": "~3.10.1",
     "lucide-react": "^1.42.0"
   },
   "devDependencies": {
