@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-CLI_VERSION := 0.8.1
+CLI_VERSION := 0.9.0
 CLI := .venv/bin/md-blueprints
 CLI_SOURCE := git+https://github.com/motherduckdb/motherduck-blueprints.git@v$(CLI_VERSION)
 PYTHON ?= python3
@@ -133,6 +133,10 @@ doctor: $(CLI) ## Check installed CLI, schema status, and upgrade guidance witho
 .PHONY: upgrade
 upgrade: $(CLI) ## Write CLI and action pins for a release and print the diff (VERSION=x.y.z optional)
 	PYTHONDONTWRITEBYTECODE=1 $(CLI) upgrade --to "$(or $(VERSION),latest)" --write
+
+.PHONY: sync-preview
+sync-preview: $(CLI) ## Replace .dive-preview/ support files with the pinned release's copies
+	PYTHONDONTWRITEBYTECODE=1 $(CLI) sync-preview --write
 
 .PHONY: migrate
 migrate: $(CLI) ## Dry-run schema migration to the latest supported version
