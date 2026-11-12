@@ -53,7 +53,7 @@ make preview-smoke wikipedia-pageviews
 
 Validation and preview builds do not connect to MotherDuck. To open a live local preview after deploying the data, set `VITE_MOTHERDUCK_TOKEN` in the ignored `.dive-preview/.env`, then run `make preview wikipedia-pageviews`. A personal read/write token works for local preview, which only reads data. Keep it private. CI always uses the service-account token.
 
-Create a new pipeline and dashboard with `make new-project revenue`. Edit its files under `projects/revenue/`, run `make validate`, and open a PR. For separate pipeline and dashboard packages, see the [repository reference](repository-reference.md).
+Create a new pipeline and dashboard with `make new-project revenue`. Edit its files under `projects/revenue/`, run `make validate`, and open a PR. For separate pipeline and dashboard packages, see the [repository reference](repository-reference.md). For a transformation, a data monitor, or a Guide, start from an [example](examples/README.md).
 
 ## If something does not work
 
@@ -68,8 +68,8 @@ Create a new pipeline and dashboard with `make new-project revenue`. Edit its fi
 | `MOTHERDUCK_TOKEN is required` although the environment secret exists | The calling workflow does not pass the secret, so GitHub gives the reusable job an empty string. Run `make upgrade`, which adds `secrets: MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}` to the deploy and cleanup callers. `make doctor` reports callers that are missing it or use `secrets: inherit`, which GitHub ignores across organizations. |
 | Permission error from MotherDuck | Check the service account's privileges. Custom roles and organization-wide Guides require an admin identity. |
 | `RBAC preflight failed: target requires the admin role` | The deployment identity does not have the `admin` role, either directly or through a custom role. The check runs before any write and stops every selected package. Grant `admin` to the service account, or set `deploy: false` on the roles and organization Guides it names. |
-| `member(s) are not users in this organization`, `grant user(s) are not users in this organization`, or `run grant user(s) are not users in this organization` | A role `members` entry, or a share or Flight `grants.users` entry, names a username that is not in the deployment identity's organization. Nothing was written. Fix the spelling or remove the user. |
-| `run grant role(s) do not exist and are not selected for deployment` | A Flight's `grants.roles` names a role that does not exist and that this run does not create. Nothing was written. Create the role first, or deploy its `roles/` package in the same run. Roles never deploy to preview, so a preview needs an existing role or `roles: []` under `targets.preview`. |
+| `member(s) are not users in this organization`, `grant user(s) are not users in this organization`, or `run grant user(s)` or `read grant user(s) are not users in this organization` | A role `members` entry, or a share, Flight, or Dive `grants.users` entry, names a username that is not in the deployment identity's organization. Nothing was written. Fix the spelling or remove the user. |
+| `run grant role(s)` or `read grant role(s) do not exist and are not selected for deployment` | A Flight's or Dive's `grants.roles` names a role that does not exist and that this run does not create. Nothing was written. Create the role first, or deploy its `roles/` package in the same run. Roles never deploy to preview, so a preview needs an existing role or `roles: []` under `targets.preview`. |
 | `MotherDuck cannot create role '<name>'` | A role you deploy for the first time has a name MotherDuck refuses, usually because it contains a hyphen. Nothing was written. Rename the role, for example `finance-team` to `finance_team`, and update `includedRoles` and share `grants.roles` that name it. |
 | `Assigning roles to users is disabled for this organization` | The organization assigns user roles through SCIM from its identity provider. Remove users from the role's `members`, or assign the role in the identity provider. Service accounts can still be members. |
 | `access token '<name>' expired` or `accessTokenName '<name>' is not an access token of the deployment identity` | A Flight's `accessTokenName` must name an unexpired token of the identity that deploys the target. Nothing was written. Create a token with that name for the service account, or fix the name. |
@@ -88,7 +88,7 @@ Before team use, [configure branch protection and deployment approvals](#protect
 
 ## Add staging (optional)
 
-Add staging when production credentials must not be available to pull requests or ordinary `main` deployments.
+Add staging when production credentials must not be available to pull requests or ordinary `main` deployments. The [CI/CD diagram](repository-reference.md#cicd) shows both setups side by side.
 
 1. Create a second MotherDuck service account for staging.
 2. Create a GitHub Environment named `motherduck-staging` and add its token as an environment secret named `MOTHERDUCK_TOKEN`.

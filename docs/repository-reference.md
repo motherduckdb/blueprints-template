@@ -94,7 +94,21 @@ Inputs can also be used in templates through `${inputs.<name>.*}`. Rendered meta
 
 The CLI validates missing producers, missing outputs, outputs pointing to missing shares, self-references, and dependency cycles before deployment.
 
-Selection follows the graph:
+Selection follows the graph. In this repository, two Dives read the share of one Flight package:
+
+```mermaid
+flowchart LR
+  ingest["events-ingest<br/>Flight + share"] -->|output: events| a["events-dashboard<br/>Dive"]
+  ingest -->|output: events| b["finance-dashboard<br/>Dive"]
+```
+
+| Change in a pull request | Preview deploys | Merge deploys to production |
+| --- | --- | --- |
+| `events-ingest` | `events-ingest` and both Dives | `events-ingest` and both Dives |
+| `events-dashboard` | `events-dashboard` and `events-ingest`, so the preview has data | `events-dashboard` only |
+
+The rules behind the table:
+
 
 - Preview expands recursively downstream, then adds every producer those packages read so the branch-scoped preview has its data. Other consumers of those producers are unchanged and are not previewed. Changing one Dive previews that Dive and its producers, not every Dive that reads the same share.
 - Production expands downstream only. Changing a producer redeploys its consumers; changing only a consumer uses the existing production output and does not rerun its producer.
@@ -184,6 +198,8 @@ Customer repositories include a manual **Prepare Guide context** workflow. It up
 
 Preview Dives use `draft`. A Dive that omits `status` gets `draft` in preview; a Dive with another base `status` needs `targets.preview.status: draft`, or preview validation fails. Production manifests can declare `draft`, `ready`, `endorsed`, or `archived`; omitting `status` preserves the live value during content updates. Deployment plans show current and desired status, and endorsement requires an organization-admin identity.
 
+A deployed Dive is owned by the deployment identity. Other people open it through a `read` grant: MotherDuck gives a new Dive one for the whole organization, or none where the organization starts Dives private. Declare the audience with the Dive's [`grants`](blueprint-yml-reference.md#dives) to manage it from the repository. A grant on the Dive does not include its data, so the same audience needs `READ` on the shares the Dive mounts.
+
 Dive source imports from `@motherduck/react-sql-query` only what production Dives provide: `useSQLQuery`, `useExport`, `useDiveState`, `useRunFlight`, `useFlightRun`, `quoteSqlIdentifier`, and `quoteSqlString`. The other importable libraries are React 18.3.1, d3 7.9.0, lucide-react 0.468.0, and recharts 3.7.0, with Tailwind CSS 3.4.17 classes. The local preview pins the same versions, and `make preview-smoke` fails on any other import from the SDK. `useRunFlight` and `useFlightRun` start and follow a Flight run by UUID. Any viewer of a Dive can start a Flight that they own or hold a `run` grant on, so give the Dive's audience a grant with the Flight's [`grants`](blueprint-yml-reference.md#flights). A viewer who is not the Flight's owner or an organization admin can follow only the runs they started. Blueprints does not substitute Flight IDs into Dive source: a Dive that names a Flight by UUID runs that Flight from every target, including previews, so point it at a Flight that is safe to run from a preview. The local preview runs Flights with your token, so it can run a Flight only when you own it or hold a grant.
 
 ## Guides
@@ -198,7 +214,22 @@ Declare custom roles under `resources.roles` or scaffold a role package with `ma
 
 ## CI/CD
 
-The generated workflows call versioned reusable workflows. What each event does:
+The generated workflows call versioned reusable workflows. The targets in `motherduck.yml` decide where each event deploys:
+
+```mermaid
+flowchart TB
+  subgraph default["Default: preview and prod"]
+    d_pr["Pull request"] --> d_prev["Preview<br/>production account"]
+    d_main["Push to main"] --> d_prod["Production"]
+  end
+  subgraph staged["With a staging target"]
+    s_pr["Pull request"] --> s_prev["Preview<br/>staging account"]
+    s_main["Push to main"] --> s_stg["Staging"]
+    s_rel["Published release"] --> s_prod["Production"]
+  end
+```
+
+What each event does:
 
 | Event | Without staging | With staging |
 | --- | --- | --- |
@@ -225,7 +256,7 @@ Pushes to `main`:
 
 Deleting a package directory removes it from validation and deployment. It does not delete anything in MotherDuck: a scheduled Flight keeps running, and its Dives, Guides, shares, and roles stay live. The deploy log for that push prints a warning that names the package.
 
-1. Before deleting, record the live IDs: run `.venv/bin/md-blueprints plan --target prod --blueprints NAME` with the target's token and keep the `ID` column.
+1. Before deleting, record the live IDs: run `make plan NAME=<package>` (`.venv/bin/md-blueprints plan --target prod --blueprints NAME`) with the target's token and keep the `ID` column.
 2. Remove or repoint the consumers first. Validation fails while another package still declares the retired package as an input or a Guide reference.
 3. Delete the package directory and merge the pull request. Previews of the pull request are cleaned up as usual.
 4. Delete the live resources with the identity that owns them, in the MotherDuck UI or with SQL. Delete consumers before producers:
@@ -243,5 +274,10 @@ Renaming a package directory and its `name` together does not retire it: its res
 
 ## Included examples
 
-- [Wikipedia Pageviews](examples/wikipedia-pageviews.md) uses independent Flight and Dive packages connected through a named output and input.
+The [examples index](examples/README.md) lists every example by what it is for.
+
+- [Wikipedia Pageviews](examples/wikipedia-pageviews.md) uses independent Flight and Dive packages connected through a named output and input. It is the active starter.
+- [Pageviews Weekly Trends](../examples/pageviews-weekly-trends/README.md) is a SQL transformation project that reads the starter's data through an input.
+- [Data Freshness Monitor](../examples/data-freshness-monitor/README.md) is an hourly Flight that records checks and fails when data is stale.
+- [Pageviews Guide](../examples/pageviews-guide/README.md) is a Guide package with catalog, Flight, and Dive references.
 - [NCS Field Recovery Explorer](examples/ncs-field-recovery.md) keeps its Flight, share, and Dive in one project because they deploy and roll back together.

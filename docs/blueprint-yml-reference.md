@@ -75,7 +75,7 @@ An input exposes:
 | `access` | Target-rendered share access |
 | `visibility` | Target-rendered share visibility |
 
-For example, a Guide or Flight can use `${inputs.events.database}` in its rendered configuration. Share URLs are resolved from live MotherDuck state during plan/deploy and are not a static template field.
+For example, a Guide or Flight can use `${inputs.events.database}` in its rendered configuration. The [Pageviews weekly trends example](../examples/pageviews-weekly-trends/README.md) passes it to a transformation Flight this way. Share URLs are resolved from live MotherDuck state during plan/deploy and are not a static template field.
 
 ## Inputs and Outputs
 
@@ -209,6 +209,8 @@ Required fields are `name`, `source`, and `requirements`. Optional fields includ
 
 Without `instanceType`, a new Flight gets the plan default and an existing Flight keeps its current size. Removing the field does not reset the size; set it to the size you want. MotherDuck rejects a size your plan does not allow when the Flight is created or updated. Sending a size needs DuckDB 1.5.6 or newer. The Blueprints action and the MotherDuck CLI that `make install-deploy` installs both use it. With an older backend, such as a MotherDuck CLI before `v1.5.6-2026-10-169`, `plan` and `deploy` stop before any write; run `make install-deploy`, or install `md-blueprints[deploy]` and set `MD_BLUEPRINTS_SQL_BACKEND=duckdb`.
 
+For complete Flights, see the [examples](examples/README.md): an API load, a SQL transformation with a run chart, and an hourly monitor that uses `instanceType` and an optional secret.
+
 Flight source must exist and parse as Python. Cron values use five UTC fields. The default preview policy disables schedules. `waitForRun: success` applies when `runOnDeploy: true`.
 
 `chart` names a Mermaid file, the `chart.mmd` that `motherduck flight init --chart` writes, which MotherDuck shows as the Flight's run chart in the Flight Explainer. Run `motherduck flight guide --explainer` for its format. Like `motherduck flight push`, deploy sends the file when it is declared, an empty file clears the chart, and omitting `chart` leaves the live chart as it is. The file must exist inside the package.
@@ -242,9 +244,30 @@ Each item requires `alias` and exactly one of:
 - `input`: a declared top-level input.
 - `url`: a literal MotherDuck share URL, normally owned outside this repository.
 
-A Dive requires `title`, `source`, and a `requiredResources` array, which may be empty for a Dive without data mounts. `id`, `owner`, `deploy`, `description`, `status`, and target overrides are optional. `status` accepts `draft`, `ready`, `endorsed`, or `archived`; preview Dives must be `draft`, so a Dive with another base `status` needs `targets.preview.status: draft`. Endorsing a Dive requires an organization admin. Preview titles must include the branch or branch slug.
+A Dive requires `title`, `source`, and a `requiredResources` array, which may be empty for a Dive without data mounts. `id`, `owner`, `deploy`, `description`, `status`, `grants`, and target overrides are optional. `status` accepts `draft`, `ready`, `endorsed`, or `archived`; preview Dives must be `draft`, so a Dive with another base `status` needs `targets.preview.status: draft`. Endorsing a Dive requires an organization admin. Preview titles must include the branch or branch slug.
 
 The deployer strips the `export const REQUIRED_DATABASES = ...` declaration (single-line or multi-line) from local-preview source and passes the rendered mounts to MotherDuck. Only that exact name is removed; an export such as `REQUIRED_DATABASES_BY_ENV` stays in the deployed source.
+
+`grants` decides who can open the Dive. Its owner, the deployment identity, can always open it; everyone else needs a `read` grant. Deploy issues `GRANT READ ON DIVE` after it creates or updates the Dive.
+
+```yaml
+resources:
+  dives:
+    revenue:
+      title: Revenue
+      source: src/dive.tsx
+      requiredResources: []
+      grants:
+        roles: [finance]
+        mode: authoritative
+```
+
+- `roles` and `users` name roles and MotherDuck usernames. `organization: true` grants every member of the organization, including its service accounts. MotherDuck matches names without regard to case.
+- `mode: additive` (the default) keeps grantees that are not declared. `mode: authoritative` revokes them, including grants made in the MotherDuck UI or with SQL.
+- Depending on the organization, MotherDuck makes a new Dive readable by everyone in the organization or only by its owner. Without `grants`, Blueprints leaves that default in place. To restrict a Dive to the declared grantees, use `mode: authoritative` without `organization: true`: deploy then revokes the organization grant, and `plan` says so. In additive mode an organization grant stays.
+- `plan` reads the live grants and lists what deploy will grant and revoke. It stops before any write when a role does not exist and is not declared in the same run, or when a username is not in the organization.
+- A `read` grant on a Dive does not share its data or its Flights. Viewers also need `READ` on each share the Dive mounts (see share [`grants`](#shares)) and `run` on each Flight it starts (see Flight [`grants`](#flights)).
+- Grants apply in every target. Target overrides merge into `grants`, so set `roles: []`, `users: []`, and `organization: false` under `targets.preview` when a preview should not be granted to the production audience.
 
 ## Guides
 
